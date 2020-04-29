@@ -1,0 +1,20 @@
+{
+  "name": "football-test",
+  "version": "1.0.0",
+  "description": "The goal is to make a project that exposes an API with an HTTP GET in this  URI: /import-league/{leagueCode} . E.g., it must be possible to invoke the  service using this URL: `http://localhost:<port>/import-league/CL`",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "body-parser": "^1.19.0",
+    "dotenv": "^8.2.0",
+    "express": "^4.17.1",
+    "mysql": "^2.18.1",
+    "path": "^0.12.7"
+  }
+}
