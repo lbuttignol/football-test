@@ -60,3 +60,28 @@ has participant teams that are already imported (because each team might belong
 to one or more leagues). For these cases, it must add the relationship between 
 the league and the team(s) (and omit the process of the preexistent teams and 
 their players).
+
+
+## Running This App
+
+From the home folder, run the following commands:
+
+For the very first build:
+
+- `$ docker-compose build`
+
+Every time after that:
+
+- `$ docker-compose up`
+
+The API server should be running at `http://localhost:3003`. 
+<!-- The client server will be running at `http://localhost:3031`. -->
+The MySQL database will be running at: `127.0.0.1:3307`
+
+To stop the services:
+
+- `$ docker compose-stop`
+
+To kill the services:
+
+- `CTRL + C` and then `$ docker compose-down`
