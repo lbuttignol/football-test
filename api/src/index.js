@@ -1,5 +1,8 @@
 const app = require('./config/server');
 
+//import db connection
+const dbConn = require('./sql/database');
+
 // import routes
 require('./routes/hello')(app);
 
