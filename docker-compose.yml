@@ -1,4 +1,4 @@
-version: '3.1'
+version: '3'
 
 services:
   # client:
@@ -9,24 +9,50 @@ services:
   #     - "3031:3000"
   #   depends_on:
   #     - api
+  db:
+    build: ./api/src/sql
+    # networks:
+    #   - docker_football_test_net
+    # restart: always
+    environment:
+      MYSQL_DATABASE: footballDb
+      MYSQL_ROOT_PASSWORD: example
+      MYSQL_USER: mysql
+      MYSQL_PASSWORD: example
+      MYSQL_HOST: db
+    ports:
+    #   - "HOST_PORT:CONTAINER_PORT"
+      - "3306:3306"
+    # to allow connection from the native OS
+    expose:
+      - 3306
+    volumes:
+      - ./docker/data/db:/var/lib/mysql
 
   api:
     build: .
+    environment:
+      MYSQL_HOST: db
+      MYSQL_PORT: 3306
+      MYSQL_DATABASE: footballDb
+      MYSQL_USER: mysql
+      MYSQL_PASSWORD: example
+      PORT: 3000
     volumes:
       - "./api:/app"
     ports:
+      # - "HOST_PORT:CONTAINER_PORT"
       - "3000:3000"
     depends_on:
       - db
+    # networks:
+    #   - docker_football_test_net
+    # links:
+    #   - db
+    # to allow connection from the native OS
+    expose:
+      - 3000
 
-  db:
-    image: mysql:latest
-    restart: always
-    environment:
-      MYSQL_ROOT_PASSWORD: example
-      MYSQL_DATABASE: footballDb
-      MYSQL_USER: root
-    ports:
-      - "3306:3306"
-    volumes:
-      - ./docker/data/db:/var/lib/mysql
+# networks:
+#   docker_football_test_net:
+#     driver: bridge
