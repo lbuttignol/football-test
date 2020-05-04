@@ -2,13 +2,12 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const path = require('path');
 const http = require('http');
-// const Request = require("request");
 
 
 const app = express();
 
 //import db connection
-// const dbConn = require('./sql/database');
+const dbConn = require('./sql/database');
 
 // settings
 app.use(bodyParser.json());

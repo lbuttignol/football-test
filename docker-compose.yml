@@ -11,11 +11,8 @@ services:
   #     - api
   db:
     build: ./api/src/sql
-    # networks:
-    #   - docker_football_test_net
-    # restart: always
     environment:
-      MYSQL_DATABASE: footballDb
+      MYSQL_DATABASE: footballdb
       MYSQL_ROOT_PASSWORD: example
       MYSQL_USER: mysql
       MYSQL_PASSWORD: example
@@ -34,10 +31,11 @@ services:
     environment:
       MYSQL_HOST: db
       MYSQL_PORT: 3306
-      MYSQL_DATABASE: footballDb
+      MYSQL_DATABASE: footballdb
       MYSQL_USER: mysql
       MYSQL_PASSWORD: example
       PORT: 3000
+    restart: on-failure
     volumes:
       - "./api:/app"
     ports:
@@ -45,14 +43,8 @@ services:
       - "3000:3000"
     depends_on:
       - db
-    # networks:
-    #   - docker_football_test_net
-    # links:
-    #   - db
+    links: 
+      - db
     # to allow connection from the native OS
     expose:
       - 3000
-
-# networks:
-#   docker_football_test_net:
-#     driver: bridge
