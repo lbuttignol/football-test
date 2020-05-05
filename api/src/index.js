@@ -89,6 +89,9 @@ app.get('/import-league/:cl',(req,res)=>{
       console.log("obj");
       console.log(obj);
       res.json(obj);
+
+      // Insert object to db
+      dbConn.insertCompetition(obj.id,obj.name,obj.code,obj.area.name);
     });
   
   });

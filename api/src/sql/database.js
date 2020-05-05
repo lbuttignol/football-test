@@ -6,36 +6,39 @@ const connection = mysql.createConnection({
   database: process.env.MYSQL_DATABASE
 });
 
+// insert Competition
+const insertCompetition = (id,name,code,areaName) =>{
+  // check nullable
 
-connection.connect((err)=>{
-  if(err){
-    console.error("error connecting: " + err.stack);
-    return process.exit(22); //consistently exit so the Docker container will restart until it connects to the sql db
-  }
-  console.log("connected as id " + connection.threadId);
-});
+  // create connection
+  connection.connect((err)=>{
+    if(err){
+      console.error("error connecting: " + err.stack);
+      return {"message": "Server Error" };
+    }
+    console.log("connected as id " + connection.threadId);
+  });
+  
+  sql = `INSERT INTO competitions (id, name,code, areaName) VALUES ('${id}','${name}','${code}','${areaName}')`
+  console.log(sql);
+  connection.query(sql,(err,result)=>{
+    if(err) return {"message": "Server Error"};
+    return result;
+  });
 
-// 
-connection.query('SELECT * from competitions', (err, rows, fields)  => {
-  if(err) {
-  console.log('Data received from Db:');
-  console.log("err");
-  console.log(err);
-  console.log("rows");
-  console.log(rows);
-  console.log("fields");
-  console.log(fields);
+  // close connection
+  connection.end(()=>{
+  	console.log('Mysql disconnected!');
+  });
+}
+// insert Team
+const insertTeam = (id,name,code,areaName) =>{
 
-  }
-  console.log("query executed");
-  console.log('rows');
-  console.log(rows);
-  console.log('fields');
-  console.log(fields);
-});
+}
 
-connection.end(()=>{
-	console.log('Mysql disconnected!');
-});
+// insert Player
+const insertPlayer = (id,name,code,areaName) =>{
 
-module.exports = connection
+}
+
+module.exports = {insertCompetition,insertTeam,insertPlayer};
