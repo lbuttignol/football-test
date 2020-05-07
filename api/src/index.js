@@ -1,12 +1,10 @@
-const express = require('express');
-const bodyParser = require('body-parser');
-const path = require('path');
-const axios = require('axios');
+const express     = require('express');
+const bodyParser  = require('body-parser');
+const path        = require('path');
+const axios       = require('axios');
+const mysql       = require('mysql2');
 
 const app = express();
-
-//import db interaction
-const dbConn = require('./sql/database');
 
 // settings
 app.use(bodyParser.json());
@@ -14,31 +12,84 @@ app.use(bodyParser.json());
 // app.use(bodyParser.urlencoded({ extended: false }));
 app.set('port', process.env.PORT || 3000);
 
+
+// Mysql config params
+const dbConfig = {
+  host: process.env.MYSQL_HOST,
+  user: process.env.MYSQL_USER,
+  password: process.env.MYSQL_PASSWORD,
+  database: process.env.MYSQL_DATABASE
+}
+
+// create the connection
+const con = mysql.createConnection(dbConfig);
+
 // API header
 const header = {'X-Auth-Token': '0c006aa5775f476bbd801d9d1443c1c3'};
 
 
+// API connection data
 const apiInfo = {
   host: 'https://api.football-data.org',
   path: '',
   method: 'get',
   headers: header
 }
+
+axios.interceptors.response.use(null, (error) => {
+  console.log("in the interceptor!!");
+  if (error.config && error.response && error.response.status === 429) {
+    return axios.request(config);
+  }
+  return Promise.reject(error);
+});
+
+const getResource = (uri,apiData) => {
+  apiData.url = apiData.host+uri;
+  return axios(apiData);
+}
+
 // Interact with the API to bring a competition
 const getCompetition = (code,str) =>{
   str.path = '/v2/competitions/'+code;
   str.url = str.host+str.path;
-  try {
-    return axios(str);
-  } catch (error) {
-    console.log("error en getCompetition server.....");
-    console.log(error);
-    throw error;
-  }
+  
+
+  axios(str)
+  // .then(response => {
+  //   // console.log(response);
+  //   if (response.data) {
+  //     obj = response.data;
+  //     // this query check if the Competition was alredy imported
+  //     dbConn.query(`SELECT * FROM competitions WHERE id=?`,obj.id)
+  //     .then(rows => {
+  //       console.log("select result");
+  // //       console.log(result);
+  //       if(result != ''){
+          
+  //         // Competition already imported
+  //         console.log("This Competition was already imported.");
+  //         res.status(409);
+  //         res.json({message: "League already imported"});
+  //       }
+  //     })
+  //     .catch(err =>{
+  //       console.log("query error");
+
+  //     });
+  //   }
+  // })
+  // .catch (error => {
+  //   console.log("error en getCompetition server.....");
+  //   console.log(error);
+  //   throw error;
+
+  // }) 
 }
 
 // Interact with the API to bring all the teams in the competition
 const getTeams = (leagueCode,str) =>{
+  timeout('6s')
   str.path = '/v2/competitions/'+leagueCode+'/teams';
   str.url = str.host+str.path;
   try {
@@ -51,7 +102,8 @@ const getTeams = (leagueCode,str) =>{
 
 // Interact with the API to detailed information of a team
 const getExtendedTeam = (teamId,str) =>{
-  str.path = '/v2/team/'+teamId;
+  timeout('5s')
+  str.path = '/v2/teams/'+teamId;
   str.url = str.host+str.path;
   try {
     return axios(str);
@@ -101,142 +153,117 @@ app.get('/',(req,res)=>{
  */
 
 app.get('/import-league/:cl', (req,res)=>{
-
-  getCompetition(req.params.cl,apiInfo)
-  .then(response =>{
-    if (response.data) {
-      obj = response.data;
-      // this query check if the Competition was alredy imported
-      dbConn.query(`SELECT * FROM competitions WHERE id=?`,obj.id,(err,result)=>{
-        if (err){
-          
-          // database error
-          console.log('An error with the Database Conection has occurred');
-          res.status(504);
-          res.json({message: "Server Error"});
-        }
-        console.log("select result");
-        console.log(result);
-        if(result != ''){
-          
-          // Competition already imported
-          console.log("This Competition was already imported.");
-          res.status(409);
-          res.json({message: "League already imported"});
-        }else{
-          // the competition must to be stored
-          dbConn.query(`INSERT INTO competitions (id, name,code, areaName) VALUES (?,?,?,?)`,
-          [obj.id,
-           obj.name,
-           obj.code,
-           obj.area.name],(err,result)=>{
-            if (err){
-              // database error
-              console.log('An error with the Database Conection has occurred');
-              res.status(504);
-              res.json({message: "Server Error"});
-            }
-            
-            // Competition inserted  
-            // Get all the teams in the competition
-            getTeams(obj.id,apiInfo)
-            .then(response => {
-              console.log("teams response");
-              console.log(response);
-              // bring all teams 
-              console.log("teams response data");
-              console.log(response.data);
-              console.log("teams response data teams");
-              console.log(response.data.teams);
-              tms = response.data.teams;
-              for(const tm of tms){
-                // insert every team of the competition
-                // sleep(6000).then(() => {
+  let a,b;
+  console.log("hi");
+  // search the competition in the API
+  getResource('/v2/competitions/'+req.params.cl,apiInfo)
+  .then(resp => {
+    console.log("got the response");
+    cmp = resp.data;
+    // got the competition, so then must to check if exist on DB
+    con.promise().query(`SELECT * FROM competitions WHERE id=?`,cmp.id)
+    .then( ([rows,fields]) => {
+      console.log("then1");
+      if(rows != ''){
+        // competition already imported
+        console.log('competition already imported');
+        res.status(409);
+        res.json({message:"League already imported"});
+  //
+      }else{
+        // insert the competition and all 
+        con.promise().query(`INSERT INTO competitions (id, name,code, areaName) VALUES (?,?,?,?)`,
+        [cmp.id,
+         cmp.name,
+         cmp.code,
+         cmp.area.name])
+        .then(([rows,fields])=>{
+          console.log("INSERT INTO competitions (id, name,code, areaName) VALUES (?,?,?,?)");
+          console.log("se ejecutó correctamente");
+          //Search all teams in the competition
+          getResource('/v2/competitions/'+req.params.cl+'/teams',apiInfo)
+          .then(resp1 =>{
+            console.log("traigo todos los equipos");
+            console.log(resp1.data.teams);
+            // iterate over every team to search his players
+            tms = resp1.data.teams;
+            for(const tm of tms){
+              getResource('/v2/teams/'+tm.id,apiInfo)
+              .then(resp2 => {
+                console.log("Has complete data of team:");
+                console.log(tm.id);
+                
+                con.promise().query(`INSERT INTO teams (id, name, tla, shortName, areaName, email) VALUES (?,?,?,?,?,?)`,
+                [tm.id,
+                 tm.name,
+                 tm.tla,
+                 tm.shortName,
+                 tm.area.name,
+                 tm.email])
+                .then(([rows,fields])=>{
+                  // insertar relaciones??
+                  console.log("TERMINO DE INSERTAR??");
                   
-                  getExtendedTeam(tm.id,apiInfo)
-                  .then(response =>{
-                    extendedTm = response.data;
-                    // Inserting Team to the database
-                    db.query(`INSERT INTO teams (id, name, tla, shortName, areaName, email) VALUES (?,?,?,?,?,?)`,
-                    [extendedTm.id,
-                     extendedTm.name,
-                     extendedTm.tla,
-                     extendedTm.shortName,
-                     extendedTm.area.name,
-                     extendedTm.email],(err,result)=>{
-                      if(err){
-                        console.log('An error with the Database Conection has occurred');
-                        res.status(504);
-                        res.json({message: "Server Error"});
-                      }
+                  // insert data of all players
+                  for(const plyr of resp2.data.squad){
+                    console.log("Insert player");
+                    console.log(plyr.id);
+                    con.promise().query(`INSERT INTO players (id, name, position, dateOfBirth, countryOfBirth, nacionality) VALUES (?,?,?,?,?,?)`,
+                    [plyr.id,
+                     plyr.name,
+                     plyr.position,
+                     plyr.dateOfBirth,
+                     plyr.countryOfBirth,
+                     plyr.nacionality])
+                    .then(([rows,fields])=>{
+                      // insert relationship team/player
+                    })
+                    .catch(e0=>{
+                      console.log("catch0");
+                      console.log(e0);
+                    })
+                  }
+                })
+                .catch(e1=>{
+                  console.log("catch1");
+                  console.log(e1);
+                })
 
-                      // insert Relationship competition team
-                      // 
+              })
+              .catch(e2=>{
+                console.log("catch2");
+                console.log(e2);
+              })
+            }
 
-                      plyrs = extendedTm.squad;
-                      // Inserting players into database
-                      for(const plyr of plyrs){
-                        // only players filter
-                        if(plyr.role == "PLAYER"){
-                          db.query(`INSERT INTO players (id, name, position, dateOfBirth, countryOfBirth, nacionality) VALUES (?,?,?,?,?,?)`,
-                          [plyr.id,
-                           plyr.name,
-                           plyr.position,
-                           plyr.dateOfBirth,
-                           plyr.countryOfBirth,
-                           plyr.nacionality],(err,result)=>{
-                            if(err){
-                              console.log('An error with the Database Conection has occurred');
-                              res.status(504);
-                              res.json({message: "Server Error"});
-                            }
-                          });
+          })
+          .catch(e3=>{
+            console.log("catch3");
+            console.log(e3);
+          })
+        })
+        .catch(e4=>{
+          console.log("catch4");
+          console.log(e4);
+        })
 
-                          // insert Relationship team player
-                          // 
-                        }
+      } 
+    })
+    .catch(err =>{
+      console.log("catch fallo de base de datos: SELECT * FROM competitions WHERE id=? ");
+      console.log(err);
 
-                      }
+    })
+    .then( () => {
+      console.log("then2");
+      con.end()
+    });
 
-                    });
-
-                  })
-
-                // });
-
-              }
-
-            })
-            .catch(e => {
-              res.status(504);
-              res.json({message: "Server Error"});
-            })
-
-          });
-        }
-
-      });
-
-    }else{
-      // Probabkemente esto vuele 
-      console.log("HAS NO DATA###########");
-    }
   })
-  //Competition errors
-  .catch(error =>{
-    errCode = error.response.data.errorCode
-    if(errCode == 400 || errCode == 403 || errCode == 404 ){
-      console.log("Your request was malformed.");
-      console.log("You tried to access a resource that exists, but is not available to you.");
-      console.log("Resource not found.");
-      res.status(404);
-      res.json({message: "Not found"});
-    }
-    if(error.response.data.errorCode == 429){
-      console.log("You exceeded your API request quota.");
-      res.json({message: "Too Many Requests", error: error.response.data.errorCode});
-      // should try again later
-    }
+  .catch(e =>{
+    console.log("catch getResource0: competition");
+    console.log(e);
+    //tirar un connection error-- ver si es 404 o 504
   })
 });
 

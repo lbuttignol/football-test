@@ -29,4 +29,11 @@ CREATE TABLE IF NOT EXISTS players (
 );
 
 INSERT INTO competitions (id, name,code, areaName) values (
-1, 'equipo1','arg','argentina');
+1, 'compe1','cmp','argentina');
+
+INSERT INTO teams (id, name,tla, shortName, areaName,email) values (
+1, 'equipo1','eq1','argentina','bla','bla');
+
+INSERT INTO players (id, name,position, dateOfBirth, countryOfBirth,nacionality) values (
+1, 'equipo1','eq1',NULL,NULL,NULL);
+
