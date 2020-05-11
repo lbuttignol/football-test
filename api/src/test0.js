@@ -61,6 +61,7 @@ function insertCompetition(comp){
  * @returns {Promise}
  */
 function forEachPromise(items, fn, context) {
+  console.log("looping!!!");
   return items.reduce((promise, item) => {
     return promise.then(() => {
       return fn(item,context);
@@ -119,7 +120,7 @@ function insertTeam(team,comp){
 
 function insertPlayer(pl,team){
   var player;
-  return new Promise((resolve,reject)=>{
+  return new Promise((resolve, reject)=>{
     database = new Database();
     console.log("inserting player");
     console.log("id: "+pl.id);
@@ -139,22 +140,12 @@ function insertPlayer(pl,team){
       .then(()=>{
         console.log("insert team/player relationship")
         return database.query('INSERT INTO team_players (team_id, player_id) VALUES(?,?)',[team.id,pl.id]);
+      })
+      .then(()=>{
+        console.log("HOLA---------");
+        database.close();
       });
-
-    }//else{
-      // player = false;
-      // return new Promise((res,rej)=>{res()});
-  //   }
-  // })
-  // .then(()=>{
-  //   if(player){
-  //     return database.query('INSERT INTO team_players (team_id, player_id) VALUES(?,?)',[team.id,pl.id]);
-  //   }else{
-  //     return new Promise((res,rej)=>{res()});
-  //   }
-  })
-  .then(()=>{
-    database.close();
+    }
     resolve();
   });
 }
@@ -164,7 +155,7 @@ function insertPlayer(pl,team){
 let a,b;
 console.log("hi");
 param = 2000;
-// param = 2001;
+param = 2001;
 // param = 2002;
 // param = 2003;
 // param = 2021;
@@ -181,6 +172,7 @@ getResource('/v2/competitions/'+param,apiInfo)
 })
 .then((resp1)=>{
   console.log("has info of all teams");
+  debugger;
   return forEachPromise(resp1.data.teams,insertTeam,resp1.data.competition);
 })
 .then(()=>{
