@@ -35,6 +35,7 @@ services:
       MYSQL_USER: mysql
       MYSQL_PASSWORD: example
       PORT: 3000
+      API_TOKEN: 0c006aa5775f476bbd801d9d1443c1c3
     restart: on-failure
     volumes:
       - "./api:/app"

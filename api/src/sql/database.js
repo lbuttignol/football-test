@@ -1,22 +1,21 @@
 const mysql = require( 'mysql' );
 
-// const config = {
-//   // connectionLimit: 100,
-//   host: process.env.MYSQL_HOST,
-//   user: process.env.MYSQL_USER,
-//   password: process.env.MYSQL_PASSWORD,
-//   database: process.env.MYSQL_DATABASE
-// }
+const config = {
+  host: process.env.MYSQL_HOST,
+  user: process.env.MYSQL_USER,
+  password: process.env.MYSQL_PASSWORD,
+  database: process.env.MYSQL_DATABASE
+}
 
 // Mysql config params
-const config = {
-  // waitForConnections: true,
-  // connectionLimit: 10,
-  host: 'localhost',
-  user: 'mysql',
-  password: 'example',
-  database: 'footballdb'
-}
+// const config = {
+//   // waitForConnections: true,
+//   // connectionLimit: 10,
+//   host: 'localhost',
+//   user: 'mysql',
+//   password: 'example',
+//   database: 'footballdb'
+// }
 
 class Database {
     // constructor( conf ) {

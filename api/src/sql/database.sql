@@ -24,7 +24,9 @@ CREATE TABLE IF NOT EXISTS teams (
 
 CREATE TABLE IF NOT EXISTS comp_teams (
   competition_id  INT NOT NULL ,
-  teams_id        INT NOT NULL
+  team_id        INT NOT NULL,
+  FOREIGN KEY (competition_id) REFERENCES competitions(id),
+  FOREIGN KEY (team_id) REFERENCES teams(id)
 ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 
@@ -34,16 +36,12 @@ CREATE TABLE IF NOT EXISTS players (
   position        VARCHAR(255) ,
   dateOfBirth     DATE,
   countryOfBirth  VARCHAR(255) ,
-  nacionality     VARCHAR(255) 
+  nationality     VARCHAR(255) 
 ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
-
-INSERT INTO competitions (id, name,code, areaName) values (
-1, 'compe1','cmp','argentina');
-
-INSERT INTO teams (id, name,tla, shortName, areaName,email) values (
-1, 'Qarabağ Ağdam FK','eq1','argentina','bla','bla');
-
-INSERT INTO players (id, name,position, dateOfBirth, countryOfBirth,nacionality) values (
-1, 'equipo1','eq1',NULL,NULL,NULL);
-
+CREATE TABLE IF NOT EXISTS team_players (
+  team_id     INT NOT NULL ,
+  player_id   INT NOT NULL , 
+  FOREIGN KEY (team_id) REFERENCES teams(id),
+  FOREIGN KEY (player_id) REFERENCES players(id)
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
