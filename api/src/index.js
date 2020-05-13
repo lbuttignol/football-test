@@ -82,11 +82,12 @@ function insertTeam(team,comp){
       team = itemDetailed.data ;
       return database.query(`SELECT * FROM teams WHERE id=?`,itemDetailed.data.id);
     })
-    .then((rows)=>{  
+    .then((rows)=>{ 
+      console.log("----------------"); 
       if(rows == ''){
         // insert team
         console.log("Try to insert team")
-        inserted = true;
+        inserted = false;
         return database.query(`INSERT INTO teams (id, name, tla, shortName, areaName, email) VALUES (?,?,?,?,?,?)`,
         [team.id,
          team.name,
@@ -95,9 +96,10 @@ function insertTeam(team,comp){
          team.area.name,
          team.email]);
       }
-      inserted = false;
+      inserted = true;
       console.log("TEAM already inserted---------------------------------")
-      throw new Error({message:"Team already inserted"});
+      // throw new Error({message:"Team already inserted"});
+      return Promise.resolve();
     })
     .then(()=>{
       return database.query('SELECT * FROM comp_teams WHERE competition_id = ? and team_id = ?',[comp.id,team.id]);
@@ -107,21 +109,18 @@ function insertTeam(team,comp){
         console.log("-----------------------------------------------------insert relationship comp-team");
         return database.query('INSERT INTO comp_teams (competition_id,team_id) VALUES(?,?)',[comp.id,team.id]);
       }
-      // throw new Error({message: "Competition/Team relationship already inserted"});
+
       console.log("Competition/Team relationship already inserted");
       return Promise.resolve();
     })
     .then(()=> {
       database.close(); 
-      if(inserted){
+      if(!inserted){
         console.log("go to insert players");
-        console.log("team.squad------------------------");
-        console.log(team.squad);
         players = team.squad.filter((plyr) => {return plyr.role == "PLAYER"});
-        console.log("FILTRADPPPPP");
-        console.log(players);
         return forEachPromise(players,insertPlayer,team);
       }
+
       return Promise.resolve();
     })
     .then(()=>{
@@ -147,6 +146,7 @@ function insertPlayer(pl,team){
     database.query(`SELECT * FROM players WHERE id =?`,pl.id)
     .then((rows)=>{
       if(rows != ''){
+        // Player already inserted, call resolve to follow with the relationship insert
         return Promise.resolve();
       } 
       return database.query('INSERT INTO players (id, name, position, dateOfBirth, countryOfBirth, nationality) VALUES(?,?,?,?,?,?)',
@@ -162,16 +162,13 @@ function insertPlayer(pl,team){
       return database.query('INSERT INTO team_players (team_id, player_id) VALUES(?,?)',[team.id,pl.id]);
     })
     .then(()=>{
+      database.close();
       resolve();
     })
     .catch((e)=>{
       console.log("Error inserting a player");
       console.log(e);
     })
-    .finally(()=>{
-      database.close();
-    })
-
   });
 }
 
