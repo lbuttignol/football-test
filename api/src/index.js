@@ -8,8 +8,6 @@ const app = express();
 
 // settings
 app.use(bodyParser.json());
-
-
 app.set('port', process.env.PORT || 3000);
 
 // API header
@@ -23,7 +21,7 @@ const apiInfo = {
   headers: header
 }
 
-// function that retry the request
+// Function that retry the request
 axios.interceptors.response.use(null, (error) => {
   if (error.response.status === 429) {
     return axios.request(error.config);
@@ -31,24 +29,24 @@ axios.interceptors.response.use(null, (error) => {
   return Promise.reject(error);
 });
 
+// Given an uri and the info of an api, executes the requeriment
 const getResource = (uri,apiData) => {
   apiData.url = apiData.host+uri;
   return axios(apiData);
 }
 
-
+// Insert a competition into the local database
 function insertCompetition(comp){
   database = new Database();
   return database.query(`SELECT * FROM competitions WHERE id=?`,comp.id)
   .then((rows) => {
     // success db interaction
     if(rows == ''){
-      // insert the competition and all 
-      console.log('Inserting competition...');
+      // insert the competition
       return database.query(`INSERT INTO competitions (id, name,code, areaName) VALUES (?,?,?,?)`,
       [comp.id,comp.name,comp.code,comp.area.name]);
     }
-    console.log('competition already imported throwing error');
+    // Competition already imported
     return Promise.reject({message:"League already imported", code : 409});
   })
   .catch((e)=>{
@@ -59,6 +57,7 @@ function insertCompetition(comp){
 }
 
 /**
+ * This function iterates over an array of items
  * 
  * @param items An array of items.
  * @param fn A function that accepts an item from the array and returns a promise.
@@ -72,21 +71,24 @@ function forEachPromise(items, fn, context) {
   }, Promise.resolve());
 }
 
+/* This function insert a team into the local database, also insert the relationship
+ * between the competition and the team, the team players
+ */
 function insertTeam(team,comp){
   var inserted;
   return new Promise((resolve,reject) =>{
     database = new Database();
+    // Bring all the data of a team from the api
     getResource('/v2/teams/'+team.id,apiInfo)
     .then((itemDetailed) =>{
-      console.log("---------- itemDetailed");
+      // Got the complete info of a team, now check if the team are inserted
       team = itemDetailed.data ;
       return database.query(`SELECT * FROM teams WHERE id=?`,itemDetailed.data.id);
     })
     .then((rows)=>{ 
-      console.log("----------------"); 
       if(rows == ''){
-        // insert team
-        console.log("Try to insert team")
+        // If the team aren't inserted, then insert it
+        console.log("Try to insert team");
         inserted = false;
         return database.query(`INSERT INTO teams (id, name, tla, shortName, areaName, email) VALUES (?,?,?,?,?,?)`,
         [team.id,
@@ -96,28 +98,30 @@ function insertTeam(team,comp){
          team.area.name,
          team.email]);
       }
+      // If the team are inserted, then skip the team insertion and move to the relationship insertion
       inserted = true;
-      console.log("TEAM already inserted---------------------------------")
-      // throw new Error({message:"Team already inserted"});
       return Promise.resolve();
     })
     .then(()=>{
+      // Check if the relationship between competition and team is on the DB
       return database.query('SELECT * FROM comp_teams WHERE competition_id = ? and team_id = ?',[comp.id,team.id]);
     })
     .then((rows)=>{
       if(rows == ''){
-        console.log("-----------------------------------------------------insert relationship comp-team");
+        // Insert relationship between competition and team
         return database.query('INSERT INTO comp_teams (competition_id,team_id) VALUES(?,?)',[comp.id,team.id]);
       }
 
-      console.log("Competition/Team relationship already inserted");
+      // Competition and team inserted and related, 
       return Promise.resolve();
     })
     .then(()=> {
+      // Now insert all the players if the team wasn't inserted before
       database.close(); 
       if(!inserted){
-        console.log("go to insert players");
+        // Skip the elements of the team that aren't "PLAYER"
         players = team.squad.filter((plyr) => {return plyr.role == "PLAYER"});
+        // Iterate to insert
         return forEachPromise(players,insertPlayer,team);
       }
 
@@ -134,31 +138,35 @@ function insertTeam(team,comp){
 
 }
 
+// Function that insert a player into the database
 function insertPlayer(pl,team){
   database = new Database();
   return new Promise((resolve, reject)=>{
+    // Cast dateOfBirth to allow insertion on mysql
     date = "" ; 
     if(pl.dateOfBirth != null){
       date = pl.dateOfBirth.slice(0,10); 
     }else{
       date = pl.dateOfBirth;
     }
+    // Check if the player was inserted before
     database.query(`SELECT * FROM players WHERE id =?`,pl.id)
     .then((rows)=>{
-      if(rows != ''){
-        // Player already inserted, call resolve to follow with the relationship insert
-        return Promise.resolve();
+      if(rows == ''){
+        // Insert player
+        return database.query('INSERT INTO players (id, name, position, dateOfBirth, countryOfBirth, nationality) VALUES(?,?,?,?,?,?)',
+          [pl.id,              
+           pl.name,            
+           pl.position,        
+           date,     
+           pl.countryOfBirth,  
+           pl.nationality])
       } 
-      return database.query('INSERT INTO players (id, name, position, dateOfBirth, countryOfBirth, nationality) VALUES(?,?,?,?,?,?)',
-        [pl.id,              
-         pl.name,            
-         pl.position,        
-         date,     
-         pl.countryOfBirth,  
-         pl.nationality])
+      // Player already inserted, Skip player insertion to insert the relationship between team and player
+      return Promise.resolve();
     })
     .then(()=>{
-      console.log("insert team/player relationship")
+      // Tnsert the relationship between team and player
       return database.query('INSERT INTO team_players (team_id, player_id) VALUES(?,?)',[team.id,pl.id]);
     })
     .then(()=>{
@@ -174,9 +182,9 @@ function insertPlayer(pl,team){
 
 // Router
 // Hello world page
-app.get('/',(req,res)=>{
-  res.send("hello");
-});
+// app.get('/',(req,res)=>{
+//   res.send("hello");
+// });
 
 /* GET /import-league/<codeLeague>
  *
@@ -204,31 +212,29 @@ app.get('/',(req,res)=>{
  * 
  */
 
-// League codes
-
 app.get('/import-league/:cl', (req,res)=>{
   // search the competition in the API
   getResource('/v2/competitions/'+req.params.cl,apiInfo)
   .then((resp) =>{
-    console.log("API retornó la competition");
+    // Got the competition info, now insert the competition
     return insertCompetition(resp.data);
   })
   .then((resp0) => {
-    console.log("competition inserted");
+    // Competition inserted, now search all teams that belong to the competition
     return getResource('/v2/competitions/'+req.params.cl+'/teams',apiInfo);
   })
   .then((resp1)=>{
-    console.log("has info of all teams");
+    // Got complete info of the team, now loop to insert it
     return forEachPromise(resp1.data.teams,insertTeam,resp1.data.competition);
   })
   .then(()=>{
-    console.log("done");
+    // REQUERIMIENT SUCCESFULLY EXECUTED
     res.status(201).json({message: "Successfully imported"})
   })
   .catch((e)=>{
+    // error handling
     console.log("ERROR----------------------------------------");
     console.log(e);
-    // if(e.response.status){
     if(e.response){
       console.log("bla");
       res.status(404).json({message: "Not found"});
