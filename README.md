@@ -67,26 +67,21 @@ the league and the team(s) (and omit the process of the preexistent teams and
 their players).
 
 
+## Requeriments
+
+To run this application must have docker in your server: https://www.docker.com/get-started
+
 ## Running This App
 
 From the home folder, run the following commands:
 
 For the very first build:
 
-- `$ docker-compose build`
+- `$ docker-compose up --build`
 
-Every time after that:
+The server can be hit at `http://localhost:3000/`
 
-- `$ docker-compose up`
 
-The API server should be running at `http://localhost:3003`. 
-<!-- The client server will be running at `http://localhost:3031`. -->
-The MySQL database will be running at: `127.0.0.1:3307`
+The MySQL database will be running inside a docker container, to access must run :
+`docker exec -it football-test_db_1 /bin/bash`
 
-To stop the services:
-
-- `$ docker compose-stop`
-
-To kill the services:
-
-- `CTRL + C` and then `$ docker compose-down`
